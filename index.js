@@ -1,42 +1,40 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
+app.use(bodyParser.json());
 
-app.post('/webhook', async (req, res) => {
-    const message = req.body.message;
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
-    if (!message || !message.text) {
-        console.log("No message.text found.");
-        return res.sendStatus(200);
-    }
+app.post('/', async (req, res) => {
+  const message = req.body.message;
 
-    const text = message.text.trim();
-    const sender_id = message.chat.id;
-    const channel_id = process.env.TELEGRAM_CHANNEL_ID;
-    const bot_token = process.env.TELEGRAM_TOKEN;
+  if (message && message.text) {
+    const fromUser = message.from.username || message.from.first_name || 'Someone';
+    const text = message.text;
 
-    console.log("✅ 收到来自用户的消息:", text);
-    console.log("📤 准备转发到频道:", channel_id);
+    console.log(`Received message from ${fromUser}: ${text}`);
 
+    // 发消息到频道
     try {
-        await axios.post(`https://api.telegram.org/bot${bot_token}/sendMessage`, {
-            chat_id: channel_id,
-            text: text,
-            parse_mode: 'Markdown'
-        });
-
-        console.log("✅ 成功转发到频道");
-    } catch (error) {
-        console.error("❌ 转发失败:", error.response?.data || error.message);
+      await axios.post(TELEGRAM_API_URL, {
+        chat_id: TELEGRAM_CHANNEL_ID,
+        text: `📩 来自 ${fromUser}：${text}`
+      });
+      console.log('Message sent to channel successfully!');
+    } catch (err) {
+      console.error('Failed to send message to channel:', err.response ? err.response.data : err.message);
     }
+  }
 
-    res.sendStatus(200);
+  res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server is listening on port ${PORT}`);
 });
