@@ -7,24 +7,30 @@ app.use(express.json());
 
 app.post('/webhook', async (req, res) => {
     const message = req.body.message;
-    if (!message || !message.text) return res.sendStatus(200);
 
-    const text = message.text;
-    const chat_id = process.env.TELEGRAM_CHANNEL_ID;
+    if (!message || !message.text) {
+        console.log("No message.text found.");
+        return res.sendStatus(200);
+    }
 
-    console.log('📩 收到新消息:', text);
-    console.log('📤 准备发送到频道:', chat_id);
+    const text = message.text.trim();
+    const sender_id = message.chat.id;
+    const channel_id = process.env.TELEGRAM_CHANNEL_ID;
+    const bot_token = process.env.TELEGRAM_TOKEN;
+
+    console.log("✅ 收到来自用户的消息:", text);
+    console.log("📤 准备转发到频道:", channel_id);
 
     try {
-        const response = await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-            chat_id: chat_id,
+        await axios.post(`https://api.telegram.org/bot${bot_token}/sendMessage`, {
+            chat_id: channel_id,
             text: text,
             parse_mode: 'Markdown'
         });
 
-        console.log('✅ 已发送到频道，message_id:', response.data.result.message_id);
+        console.log("✅ 成功转发到频道");
     } catch (error) {
-        console.error("❌ 错误：发送到 Telegram 失败：", error.response?.data || error.message);
+        console.error("❌ 转发失败:", error.response?.data || error.message);
     }
 
     res.sendStatus(200);
@@ -32,5 +38,5 @@ app.post('/webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });
